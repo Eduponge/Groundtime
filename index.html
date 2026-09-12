@@ -182,12 +182,31 @@
           return true;
         };
         const sanitizeStyleValue = (styleValue) => {
+          const allowedStyleProps = new Set([
+            'fill',
+            'stroke',
+            'stroke-width',
+            'stroke-dasharray',
+            'stroke-linecap',
+            'stroke-linejoin',
+            'opacity',
+            'color',
+            'font-size',
+            'font-family',
+            'font-weight',
+            'font-style',
+            'text-anchor',
+            'white-space',
+          ]);
           const safeDeclarations = styleValue
             .split(';')
             .map((declaration) => declaration.trim())
             .filter(Boolean)
             .filter((declaration) => {
+              const [prop] = declaration.split(':');
+              const propName = (prop || '').trim().toLowerCase();
               const normalized = declaration.toLowerCase();
+              if (!allowedStyleProps.has(propName)) return false;
               if (normalized.includes('javascript:')) return false;
               if (normalized.includes('expression(')) return false;
               if (normalized.includes('url(') && !urlMatchesAreSafe(declaration)) return false;
@@ -264,7 +283,7 @@
           output.setAttribute('aria-label', 'Diagrama carregado por fallback local');
           output.setAttribute('aria-invalid', 'false');
           output.removeAttribute('role');
-          setStatus(`Não foi possível ler ${sourceFile}. Usando conteúdo embutido localmente.`, true);
+          setStatus(`Não foi possível ler ${sourceFile}. Usando conteúdo embutido localmente.`);
           await renderDiagram();
         }
       }
