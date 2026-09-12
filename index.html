@@ -269,6 +269,9 @@
           const code = input.value.trim();
           if (!code) {
             output.replaceChildren();
+            output.textContent = 'Código Mermaid vazio.';
+            output.setAttribute('role', 'alert');
+            output.setAttribute('aria-label', 'Falha: código Mermaid vazio');
             output.setAttribute('aria-invalid', 'true');
             setStatus('Cole um código Mermaid para renderizar.', true);
             return;
