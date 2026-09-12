@@ -258,6 +258,7 @@
           output.textContent = 'Falha ao carregar o diagrama.';
           output.setAttribute('aria-label', 'Falha ao carregar arquivo de diagrama');
           output.setAttribute('aria-invalid', 'true');
+          output.setAttribute('role', 'alert');
           setStatus(getErrorMessage(error), true);
         }
       }
@@ -285,13 +286,14 @@
             output.replaceChildren(sanitizedSvg);
             output.setAttribute('aria-label', buildDiagramDescription(code));
             output.setAttribute('aria-invalid', 'false');
-            output.focus();
+            output.removeAttribute('role');
             setStatus('Fluxo renderizado com sucesso.');
           } catch (error) {
             if (requestId !== latestRenderRequest) return;
             output.replaceChildren();
             output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
             output.setAttribute('aria-invalid', 'true');
+            output.setAttribute('role', 'alert');
             setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
           }
         };
