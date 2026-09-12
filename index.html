@@ -308,13 +308,22 @@
           setStatus('Arquivo carregado com sucesso.');
           shouldRender = true;
         } catch (error) {
-          input.value = defaultDiagramCode;
+          const hasExistingContent = input.value.trim().length > 0;
+          if (!hasExistingContent) {
+            input.value = defaultDiagramCode;
+          }
           output.replaceChildren();
-          output.textContent = 'Arquivo local carregado a partir do conteúdo embutido.';
+          output.textContent = hasExistingContent
+            ? 'Arquivo remoto indisponível. Mantendo conteúdo atual do editor.'
+            : 'Arquivo local carregado a partir do conteúdo embutido.';
           output.setAttribute('aria-label', 'Diagrama carregado por fallback local');
           output.setAttribute('aria-invalid', 'false');
           output.removeAttribute('role');
-          setStatus(`Não foi possível ler ${sourceFile}. Usando conteúdo embutido localmente.`);
+          setStatus(
+            hasExistingContent
+              ? `Não foi possível ler ${sourceFile}. Mantendo seu conteúdo atual no editor.`
+              : `Não foi possível ler ${sourceFile}. Usando conteúdo embutido localmente.`
+          );
           shouldRender = true;
         }
 
