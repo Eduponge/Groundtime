@@ -227,6 +227,20 @@
         });
 
         svgRoot.querySelectorAll('*').forEach((node) => {
+          const tag = (node.localName || '').toLowerCase();
+          if (tag === 'style') {
+            const css = (node.textContent || '').toLowerCase();
+            const hasUnsafeCss =
+              css.includes('@import') ||
+              css.includes('javascript:') ||
+              css.includes('expression(') ||
+              (css.includes('url(') && !urlMatchesAreSafe(css));
+            if (hasUnsafeCss) {
+              node.remove();
+            }
+            return;
+          }
+
           [...node.attributes].forEach((attr) => {
             const name = attr.name.toLowerCase();
             const value = attr.value.trim();
