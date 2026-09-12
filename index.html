@@ -126,7 +126,8 @@
       const input = document.getElementById('code');
       const output = document.getElementById('output');
       const statusEl = document.getElementById('status');
-      const sourceFile = 'code-1789249679287.txt';
+      const sourceFile =
+        new URLSearchParams(location.search).get('source') || 'code-1789249679287.txt';
       const defaultDiagramCode = "flowchart TD\n    %% ESTILOS VISUAIS\n    classDef startFill fill:#0F172A,stroke:#0F172A,stroke-width:2px,color:#FFFFFF\n    classDef processFill fill:#F8FAFC,stroke:#64748B,stroke-width:2px,color:#0F172A\n    classDef actionFill fill:#EFF6FF,stroke:#3B82F6,stroke-width:2px,color:#1E3A8A\n    classDef decisionFill fill:#FEF3C7,stroke:#F59E0B,stroke-width:2px,color:#78350F\n    classDef formulaFill fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D\n\n    Start([<b>PERGUNTA</b><br>Como o AIMS determina e calcula o Ground Time?]):::startFill --> Step1\n\n    Step1[<b>1. Consulta da Rota do Avi\u00e3o</b><br>O AIMS acessa o plano de rota cadastrado no sistema<br><i>Aircraft Route Screen - Option 1.1.1</i>]:::processFill --> Step2\n\n    Step2[<b>2. Leitura dos Hor\u00e1rios Programados</b><br>Identifica na rota os valores de:<br>\u2022 <code>STA</code> da etapa de chegada<br>\u2022 <code>STD</code> da pr\u00f3xima etapa]:::actionFill --> CheckReschedule\n\n    CheckReschedule{<b>Houve FLIGHT RESCHEDULE?</b><br><i>Op\u00e7\u00e3o 'Re-schedule' aplicada no AIMS</i>}:::decisionFill\n\n    %% CAMINHO RESCHEDULE\n    CheckReschedule -- <b>SIM</b> --> PathReschedule[<b>Atualiza\u00e7\u00e3o de Linha de Base</b><br>A altera\u00e7\u00e3o manual grava novos hor\u00e1rios de <code>STA</code> e/ou <code>STD</code> na rota]:::actionFill\n    PathReschedule --> CalcFormula\n\n    %% CAMINHO PADR\u00c3O\n    CheckReschedule -- <b>N\u00c3O</b> --> PathNormal[<b>Linha de Base Corrente</b><br>O sistema usa os hor\u00e1rios de <code>STA</code> e <code>STD</code> j\u00e1 gravados no plano de rota]:::processFill\n    PathNormal --> CalcFormula\n\n    %% F\u00d3RMULA CENTRAL\n    CalcFormula[<b>3. F\u00d3RMULA DE C\u00c1LCULO DO GROUND TIME NO AIMS</b><br><br><code>Ground Time = ProximoLeg.STD - AtualLeg.STA</code><br><br><i>O AIMS ignora o banco de dados padr\u00e3o de aeroportos durante a propaga\u00e7\u00e3o</i>]:::formulaFill --> Application\n\n    Application[<b>4. Aplica\u00e7\u00e3o Pr\u00e1tica no Sistema</b><br>Quando o <code>ETA</code> atualiza ou entra mensagem de movimento:<br><code>Novo ETD = Novo ETA + Ground Time</code>]:::processFill --> EndProcess([<b>RESULTADO</b><br>Ground Time Definido e Propagado no AIMS]):::startFill";
       const sourceFileLabel = document.getElementById('source-file-label');
       let latestRenderRequest = 0;
@@ -254,6 +255,8 @@
 
             if (
               name.startsWith('on') ||
+              name === 'href' ||
+              name === 'xlink:href' ||
               (isExternalRefAttr && (isExternalProtocol || !value.startsWith('#'))) ||
               hasUnsafeUrlValue
             ) {
