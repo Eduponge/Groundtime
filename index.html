@@ -140,7 +140,21 @@
         svgRoot.querySelectorAll('script,foreignObject').forEach((node) => node.remove());
         svgRoot.querySelectorAll('*').forEach((node) => {
           [...node.attributes].forEach((attr) => {
-            if (attr.name.toLowerCase().startsWith('on')) {
+            const name = attr.name.toLowerCase();
+            const value = attr.value.trim().toLowerCase();
+            const isExternalRefAttr = name === 'href' || name === 'xlink:href' || name === 'src';
+            const isExternalProtocol =
+              value.startsWith('http:') ||
+              value.startsWith('https:') ||
+              value.startsWith('javascript:') ||
+              value.startsWith('data:');
+            const hasExternalUrlFunction = value.includes('url(') && !value.includes('url(#');
+
+            if (
+              name.startsWith('on') ||
+              (isExternalRefAttr && (isExternalProtocol || !value.startsWith('#'))) ||
+              hasExternalUrlFunction
+            ) {
               node.removeAttribute(attr.name);
             }
           });
@@ -172,7 +186,11 @@
         }
 
         try {
-          const id = `diagram-${Date.now()}`;
+          const uniqueId =
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          const id = `diagram-${uniqueId}`;
           const { svg } = await mermaid.render(id, code);
           output.replaceChildren(sanitizeSvg(svg));
           setStatus('Fluxo renderizado com sucesso.');
