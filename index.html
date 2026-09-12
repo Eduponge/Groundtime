@@ -235,7 +235,8 @@
               normalizedValue.includes('url(') &&
               [...value.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi)].some((match) => {
                 const target = (match[2] || '').trim();
-                return !target.startsWith('#');
+                const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
+                return !normalizedTarget.startsWith('#');
               });
 
             if (
