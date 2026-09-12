@@ -147,7 +147,34 @@
         return 'Falha inesperada.';
       }
 
-      function sanitizeSvg(svg) {
+      function remapSvgIds(svgRoot, prefix) {
+        const idMap = new Map();
+        const refAttrs = ['href', 'xlink:href', 'filter', 'mask', 'clip-path', 'fill', 'stroke', 'marker-start', 'marker-mid', 'marker-end'];
+
+        svgRoot.querySelectorAll('[id]').forEach((node) => {
+          const oldId = node.getAttribute('id');
+          const newId = `${prefix}-${oldId}`;
+          idMap.set(oldId, newId);
+          node.setAttribute('id', newId);
+        });
+
+        svgRoot.querySelectorAll('*').forEach((node) => {
+          refAttrs.forEach((attr) => {
+            const value = node.getAttribute(attr);
+            if (!value) return;
+
+            let nextValue = value;
+            idMap.forEach((newId, oldId) => {
+              nextValue = nextValue
+                .replaceAll(`url(#${oldId})`, `url(#${newId})`)
+                .replaceAll(`#${oldId}`, `#${newId}`);
+            });
+            node.setAttribute(attr, nextValue);
+          });
+        });
+      }
+
+      function sanitizeSvg(svg, idPrefix) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(svg, 'image/svg+xml');
         const svgRoot = doc.documentElement;
@@ -206,6 +233,7 @@
           });
         });
 
+        remapSvgIds(svgRoot, idPrefix);
         return svgRoot;
       }
 
@@ -241,7 +269,7 @@
               : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           const id = `diagram-${uniqueId}`;
           const { svg } = await mermaid.render(id, code);
-          output.replaceChildren(sanitizeSvg(svg));
+          output.replaceChildren(sanitizeSvg(svg, uniqueId));
           output.setAttribute('aria-label', buildDiagramDescription(code));
           output.focus();
           setStatus('Fluxo renderizado com sucesso.');
