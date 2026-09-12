@@ -149,43 +149,7 @@
         return 'Falha inesperada.';
       }
 
-      function remapSvgIds(svgRoot, prefix) {
-        const idMap = new Map();
-        const refAttrs = ['href', 'xlink:href', 'filter', 'mask', 'clip-path', 'fill', 'stroke', 'marker-start', 'marker-mid', 'marker-end'];
-        const remapReferenceValue = (value) => {
-          let nextValue = value;
-          nextValue = nextValue.replace(/url\(\s*#([^)]+)\s*\)/g, (match, id) => {
-            const mapped = idMap.get(id.trim());
-            return mapped ? `url(#${mapped})` : match;
-          });
-
-          if (nextValue.startsWith('#')) {
-            const rawId = nextValue.slice(1).trim();
-            const mapped = idMap.get(rawId);
-            if (mapped) return `#${mapped}`;
-          }
-
-          return nextValue;
-        };
-
-        svgRoot.querySelectorAll('[id]').forEach((node) => {
-          const oldId = node.getAttribute('id');
-          const newId = `${prefix}-${oldId}`;
-          idMap.set(oldId, newId);
-          node.setAttribute('id', newId);
-        });
-
-        svgRoot.querySelectorAll('*').forEach((node) => {
-          refAttrs.forEach((attr) => {
-            const value = node.getAttribute(attr);
-            if (!value) return;
-            const nextValue = remapReferenceValue(value);
-            node.setAttribute(attr, nextValue);
-          });
-        });
-      }
-
-      function sanitizeSvg(svg, idPrefix) {
+      function sanitizeSvg(svg) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(svg, 'image/svg+xml');
         const svgRoot = doc.documentElement;
@@ -205,7 +169,7 @@
           while ((match = urlRegex.exec(input)) !== null) {
             const target = (match[2] || '').trim();
             const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
-            if (!normalizedTarget.startsWith('#')) return false;
+            if (!/^#[a-z_][\w:.-]*$/i.test(normalizedTarget)) return false;
           }
           return true;
         };
@@ -270,7 +234,6 @@
           });
         });
 
-        remapSvgIds(svgRoot, idPrefix);
         return svgRoot;
       }
 
@@ -311,7 +274,7 @@
             const id = `diagram-${uniqueId}`;
             const { svg } = await mermaid.render(id, code);
             if (requestId !== latestRenderRequest) return;
-            output.replaceChildren(sanitizeSvg(svg, id));
+            output.replaceChildren(sanitizeSvg(svg));
             output.setAttribute('aria-label', buildDiagramDescription(code));
             output.focus();
             setStatus('Fluxo renderizado com sucesso.');
@@ -322,8 +285,9 @@
             setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
           }
         };
-        renderQueue = renderQueue.then(currentRender, currentRender);
-        await renderQueue;
+        const execution = renderQueue.then(currentRender);
+        renderQueue = execution.catch(() => {});
+        await execution;
       }
 
       document.getElementById('renderBtn').addEventListener('click', renderDiagram);
