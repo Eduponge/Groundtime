@@ -176,7 +176,7 @@
             matchCount += 1;
             const target = (match[2] || '').trim();
             const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
-            if (!/^#[a-z_][\w:.-]*$/i.test(normalizedTarget)) return false;
+            if (!/^#[-\w:.]+$/i.test(normalizedTarget)) return false;
           }
           if (hasUrlFunction && matchCount === 0) return false;
           return true;
@@ -280,6 +280,22 @@
 
       async function loadFile() {
         let shouldRender = false;
+        if (location.protocol === 'file:') {
+          input.value = defaultDiagramCode;
+          output.replaceChildren();
+          output.textContent = 'Modo local detectado. Conteúdo embutido carregado.';
+          output.setAttribute('aria-label', 'Diagrama carregado em modo local');
+          output.setAttribute('aria-invalid', 'false');
+          output.removeAttribute('role');
+          setStatus('Modo local detectado. Usando conteúdo embutido.');
+          shouldRender = true;
+        }
+
+        if (shouldRender) {
+          await renderDiagram();
+          return;
+        }
+
         try {
           const response = await fetch(sourceFile, {
             credentials: 'same-origin',
