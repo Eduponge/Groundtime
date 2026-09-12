@@ -116,7 +116,11 @@
     <script type="module">
       import mermaid from './vendor/mermaid.esm.min.mjs';
 
-      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        flowchart: { htmlLabels: false },
+      });
 
       const input = document.getElementById('code');
       const output = document.getElementById('output');
