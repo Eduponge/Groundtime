@@ -9,6 +9,12 @@
         color-scheme: light;
         font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       }
+
+      function getErrorMessage(error) {
+        if (error instanceof Error && error.message) return error.message;
+        if (typeof error === 'string' && error.trim()) return error;
+        return 'Falha inesperada.';
+      }
       body {
         margin: 0;
         background: #f8fafc;
@@ -150,7 +156,6 @@
           'animate',
           'animatetransform',
           'set',
-          'use',
         ]);
         const refAttrs = new Set(['href', 'xlink:href', 'src']);
         const urlAttrs = new Set([
@@ -216,7 +221,7 @@
           setStatus('Arquivo carregado com sucesso.');
           await renderDiagram();
         } catch (error) {
-          setStatus(error.message, true);
+          setStatus(getErrorMessage(error), true);
         }
       }
 
@@ -242,7 +247,7 @@
         } catch (error) {
           output.replaceChildren();
           output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
-          setStatus(`Erro ao renderizar: ${error.message}`, true);
+          setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
         }
       }
 
