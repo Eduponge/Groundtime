@@ -229,14 +229,20 @@
               normalizedValue.startsWith('https:') ||
               normalizedValue.startsWith('javascript:') ||
               normalizedValue.startsWith('data:');
-            const hasUnsafeUrlFunction = normalizedValue.includes('url(') && !localUrlPattern.test(value);
             const hasUnsafeUrlAttr = urlAttrs.has(name) && normalizedValue.includes('url(') && !localUrlPattern.test(value);
+            const hasUnsafeStyleUrl =
+              name === 'style' &&
+              normalizedValue.includes('url(') &&
+              [...value.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi)].some((match) => {
+                const target = (match[2] || '').trim();
+                return !target.startsWith('#');
+              });
 
             if (
               name.startsWith('on') ||
               (isExternalRefAttr && (isExternalProtocol || !value.startsWith('#'))) ||
-              hasUnsafeUrlFunction ||
-              hasUnsafeUrlAttr
+              hasUnsafeUrlAttr ||
+              hasUnsafeStyleUrl
             ) {
               node.removeAttribute(attr.name);
             }
@@ -279,7 +285,7 @@
               : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           const id = `diagram-${uniqueId}`;
           const { svg } = await mermaid.render(id, code);
-          output.replaceChildren(sanitizeSvg(svg, uniqueId));
+          output.replaceChildren(sanitizeSvg(svg, id));
           output.setAttribute('aria-label', buildDiagramDescription(code));
           output.focus();
           setStatus('Fluxo renderizado com sucesso.');
