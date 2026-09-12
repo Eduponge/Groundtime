@@ -199,7 +199,6 @@
           'set',
         ]);
         const refAttrs = new Set(['href', 'xlink:href', 'src']);
-        const localUrlPattern = /^url\(\s*(['"]?)#.+\1\s*\)$/i;
         const urlMatchesAreSafe = (input) => {
           const urlRegex = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
           let match;
@@ -209,6 +208,20 @@
             if (!normalizedTarget.startsWith('#')) return false;
           }
           return true;
+        };
+        const sanitizeStyleValue = (styleValue) => {
+          const safeDeclarations = styleValue
+            .split(';')
+            .map((declaration) => declaration.trim())
+            .filter(Boolean)
+            .filter((declaration) => {
+              const normalized = declaration.toLowerCase();
+              if (normalized.includes('javascript:')) return false;
+              if (normalized.includes('expression(')) return false;
+              if (normalized.includes('url(') && !urlMatchesAreSafe(declaration)) return false;
+              return true;
+            });
+          return safeDeclarations.join('; ');
         };
 
         if (!svgRoot || svgRoot.nodeName.toLowerCase() !== 'svg') {
@@ -235,10 +248,19 @@
               normalizedValue.startsWith('data:');
             const hasUnsafeUrlValue =
               normalizedValue.includes('url(') &&
-              (!localUrlPattern.test(value) || !urlMatchesAreSafe(value));
+              !urlMatchesAreSafe(value);
+
+            if (name === 'style') {
+              const safeStyle = sanitizeStyleValue(value);
+              if (!safeStyle) {
+                node.removeAttribute(attr.name);
+              } else {
+                node.setAttribute(attr.name, safeStyle);
+              }
+              return;
+            }
 
             if (
-              name === 'style' ||
               name.startsWith('on') ||
               (isExternalRefAttr && (isExternalProtocol || !value.startsWith('#'))) ||
               hasUnsafeUrlValue
@@ -265,6 +287,8 @@
           setStatus('Arquivo carregado com sucesso.');
           await renderDiagram();
         } catch (error) {
+          output.replaceChildren();
+          output.setAttribute('aria-label', 'Falha ao carregar arquivo de diagrama');
           setStatus(getErrorMessage(error), true);
         }
       }
