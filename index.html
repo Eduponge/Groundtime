@@ -127,6 +127,7 @@
       const output = document.getElementById('output');
       const statusEl = document.getElementById('status');
       const sourceFile = 'code-1789249679287.txt';
+      let latestRenderRequest = 0;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -191,21 +192,19 @@
           'script',
           'foreignobject',
           'animate',
+          'animatemotion',
+          'animatecolor',
           'animatetransform',
           'set',
         ]);
         const refAttrs = new Set(['href', 'xlink:href', 'src']);
-        const urlAttrs = new Set([
-          'filter',
-          'mask',
-          'clip-path',
-          'fill',
-          'stroke',
-          'marker-start',
-          'marker-mid',
-          'marker-end',
-        ]);
         const localUrlPattern = /^url\(\s*(['"]?)#.+\1\s*\)$/i;
+        const urlMatchesAreSafe = (input) =>
+          [...input.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi)].every((match) => {
+            const target = (match[2] || '').trim();
+            const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
+            return normalizedTarget.startsWith('#');
+          });
 
         if (!svgRoot || svgRoot.nodeName.toLowerCase() !== 'svg') {
           throw new Error('Saída SVG inválida.');
@@ -229,21 +228,14 @@
               normalizedValue.startsWith('https:') ||
               normalizedValue.startsWith('javascript:') ||
               normalizedValue.startsWith('data:');
-            const hasUnsafeUrlAttr = urlAttrs.has(name) && normalizedValue.includes('url(') && !localUrlPattern.test(value);
-            const hasUnsafeStyleUrl =
-              name === 'style' &&
+            const hasUnsafeUrlValue =
               normalizedValue.includes('url(') &&
-              [...value.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi)].some((match) => {
-                const target = (match[2] || '').trim();
-                const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
-                return !normalizedTarget.startsWith('#');
-              });
+              (!localUrlPattern.test(value) || !urlMatchesAreSafe(value));
 
             if (
               name.startsWith('on') ||
               (isExternalRefAttr && (isExternalProtocol || !value.startsWith('#'))) ||
-              hasUnsafeUrlAttr ||
-              hasUnsafeStyleUrl
+              hasUnsafeUrlValue
             ) {
               node.removeAttribute(attr.name);
             }
@@ -272,6 +264,7 @@
       }
 
       async function renderDiagram() {
+        const requestId = ++latestRenderRequest;
         const code = input.value.trim();
         if (!code) {
           output.innerHTML = '';
@@ -286,11 +279,13 @@
               : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           const id = `diagram-${uniqueId}`;
           const { svg } = await mermaid.render(id, code);
+          if (requestId !== latestRenderRequest) return;
           output.replaceChildren(sanitizeSvg(svg, id));
           output.setAttribute('aria-label', buildDiagramDescription(code));
           output.focus();
           setStatus('Fluxo renderizado com sucesso.');
         } catch (error) {
+          if (requestId !== latestRenderRequest) return;
           output.replaceChildren();
           output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
           setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
