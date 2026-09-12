@@ -150,6 +150,21 @@
       function remapSvgIds(svgRoot, prefix) {
         const idMap = new Map();
         const refAttrs = ['href', 'xlink:href', 'filter', 'mask', 'clip-path', 'fill', 'stroke', 'marker-start', 'marker-mid', 'marker-end'];
+        const remapReferenceValue = (value) => {
+          let nextValue = value;
+          nextValue = nextValue.replace(/url\(\s*#([^)]+)\s*\)/g, (match, id) => {
+            const mapped = idMap.get(id.trim());
+            return mapped ? `url(#${mapped})` : match;
+          });
+
+          if (nextValue.startsWith('#')) {
+            const rawId = nextValue.slice(1).trim();
+            const mapped = idMap.get(rawId);
+            if (mapped) return `#${mapped}`;
+          }
+
+          return nextValue;
+        };
 
         svgRoot.querySelectorAll('[id]').forEach((node) => {
           const oldId = node.getAttribute('id');
@@ -162,13 +177,7 @@
           refAttrs.forEach((attr) => {
             const value = node.getAttribute(attr);
             if (!value) return;
-
-            let nextValue = value;
-            idMap.forEach((newId, oldId) => {
-              nextValue = nextValue
-                .replaceAll(`url(#${oldId})`, `url(#${newId})`)
-                .replaceAll(`#${oldId}`, `#${newId}`);
-            });
+            const nextValue = remapReferenceValue(value);
             node.setAttribute(attr, nextValue);
           });
         });
@@ -212,15 +221,16 @@
         svgRoot.querySelectorAll('*').forEach((node) => {
           [...node.attributes].forEach((attr) => {
             const name = attr.name.toLowerCase();
-            const value = attr.value.trim().toLowerCase();
+            const value = attr.value.trim();
+            const normalizedValue = value.toLowerCase();
             const isExternalRefAttr = refAttrs.has(name);
             const isExternalProtocol =
-              value.startsWith('http:') ||
-              value.startsWith('https:') ||
-              value.startsWith('javascript:') ||
-              value.startsWith('data:');
-            const hasUnsafeUrlFunction = value.includes('url(') && !localUrlPattern.test(value);
-            const hasUnsafeUrlAttr = urlAttrs.has(name) && value.includes('url(') && !localUrlPattern.test(value);
+              normalizedValue.startsWith('http:') ||
+              normalizedValue.startsWith('https:') ||
+              normalizedValue.startsWith('javascript:') ||
+              normalizedValue.startsWith('data:');
+            const hasUnsafeUrlFunction = normalizedValue.includes('url(') && !localUrlPattern.test(value);
+            const hasUnsafeUrlAttr = urlAttrs.has(name) && normalizedValue.includes('url(') && !localUrlPattern.test(value);
 
             if (
               name.startsWith('on') ||
