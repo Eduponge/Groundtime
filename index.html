@@ -128,6 +128,7 @@
       const statusEl = document.getElementById('status');
       const sourceFile = 'code-1789249679287.txt';
       let latestRenderRequest = 0;
+      let renderQueue = Promise.resolve();
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -199,12 +200,16 @@
         ]);
         const refAttrs = new Set(['href', 'xlink:href', 'src']);
         const localUrlPattern = /^url\(\s*(['"]?)#.+\1\s*\)$/i;
-        const urlMatchesAreSafe = (input) =>
-          [...input.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi)].every((match) => {
+        const urlMatchesAreSafe = (input) => {
+          const urlRegex = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
+          let match;
+          while ((match = urlRegex.exec(input)) !== null) {
             const target = (match[2] || '').trim();
             const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
-            return normalizedTarget.startsWith('#');
-          });
+            if (!normalizedTarget.startsWith('#')) return false;
+          }
+          return true;
+        };
 
         if (!svgRoot || svgRoot.nodeName.toLowerCase() !== 'svg') {
           throw new Error('Saída SVG inválida.');
@@ -265,6 +270,7 @@
 
       async function renderDiagram() {
         const requestId = ++latestRenderRequest;
+        const currentRender = async () => {
         const code = input.value.trim();
         if (!code) {
           output.innerHTML = '';
@@ -290,6 +296,9 @@
           output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
           setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
         }
+        };
+        renderQueue = renderQueue.then(currentRender, currentRender);
+        await renderQueue;
       }
 
       document.getElementById('renderBtn').addEventListener('click', renderDiagram);
