@@ -1,0 +1,28 @@
+flowchart TD
+    %% ESTILOS VISUAIS
+    classDef startFill fill:#0F172A,stroke:#0F172A,stroke-width:2px,color:#FFFFFF
+    classDef processFill fill:#F8FAFC,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef actionFill fill:#EFF6FF,stroke:#3B82F6,stroke-width:2px,color:#1E3A8A
+    classDef decisionFill fill:#FEF3C7,stroke:#F59E0B,stroke-width:2px,color:#78350F
+    classDef formulaFill fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
+
+    Start([<b>PERGUNTA</b><br>Como o AIMS determina e calcula o Ground Time?]):::startFill --> Step1
+
+    Step1[<b>1. Consulta da Rota do Avião</b><br>O AIMS acessa o plano de rota cadastrado no sistema<br><i>Aircraft Route Screen - Option 1.1.1</i>]:::processFill --> Step2
+
+    Step2[<b>2. Leitura dos Horários Programados</b><br>Identifica na rota os valores de:<br>• <code>STA</code> da etapa de chegada<br>• <code>STD</code> da próxima etapa]:::actionFill --> CheckReschedule
+
+    CheckReschedule{<b>Houve FLIGHT RESCHEDULE?</b><br><i>Opção 'Re-schedule' aplicada no AIMS</i>}:::decisionFill
+
+    %% CAMINHO RESCHEDULE
+    CheckReschedule -- <b>SIM</b> --> PathReschedule[<b>Atualização de Linha de Base</b><br>A alteração manual grava novos horários de <code>STA</code> e/ou <code>STD</code> na rota]:::actionFill
+    PathReschedule --> CalcFormula
+
+    %% CAMINHO PADRÃO
+    CheckReschedule -- <b>NÃO</b> --> PathNormal[<b>Linha de Base Corrente</b><br>O sistema usa os horários de <code>STA</code> e <code>STD</code> já gravados no plano de rota]:::processFill
+    PathNormal --> CalcFormula
+
+    %% FÓRMULA CENTRAL
+    CalcFormula[<b>3. FÓRMULA DE CÁLCULO DO GROUND TIME NO AIMS</b><br><br><code>Ground Time = ProximoLeg.STD - AtualLeg.STA</code><br><br><i>O AIMS ignora o banco de dados padrão de aeroportos durante a propagação</i>]:::formulaFill --> Application
+
+    Application[<b>4. Aplicação Prática no Sistema</b><br>Quando o <code>ETA</code> atualiza ou entra mensagem de movimento:<br><code>Novo ETD = Novo ETA + Ground Time</code>]:::processFill --> EndProcess([<b>RESULTADO</b><br>Ground Time Definido e Propagado no AIMS]):::startFill
