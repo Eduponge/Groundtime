@@ -140,30 +140,56 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(svg, 'image/svg+xml');
         const svgRoot = doc.documentElement;
+        const blockedElements = new Set([
+          'script',
+          'foreignobject',
+          'animate',
+          'animatetransform',
+          'set',
+          'use',
+        ]);
+        const refAttrs = new Set(['href', 'xlink:href', 'src']);
+        const urlAttrs = new Set([
+          'filter',
+          'mask',
+          'clip-path',
+          'fill',
+          'stroke',
+          'marker-start',
+          'marker-mid',
+          'marker-end',
+        ]);
+        const localUrlPattern = /^url\(\s*(['"]?)#.+\1\s*\)$/i;
 
         if (!svgRoot || svgRoot.nodeName.toLowerCase() !== 'svg') {
           throw new Error('Saída SVG inválida.');
         }
 
-        svgRoot
-          .querySelectorAll('script,foreignObject,animate,animatetransform,set,use')
-          .forEach((node) => node.remove());
+        svgRoot.querySelectorAll('*').forEach((node) => {
+          const tag = (node.localName || '').toLowerCase();
+          if (blockedElements.has(tag)) {
+            node.remove();
+          }
+        });
+
         svgRoot.querySelectorAll('*').forEach((node) => {
           [...node.attributes].forEach((attr) => {
             const name = attr.name.toLowerCase();
             const value = attr.value.trim().toLowerCase();
-            const isExternalRefAttr = name === 'href' || name === 'xlink:href' || name === 'src';
+            const isExternalRefAttr = refAttrs.has(name);
             const isExternalProtocol =
               value.startsWith('http:') ||
               value.startsWith('https:') ||
               value.startsWith('javascript:') ||
               value.startsWith('data:');
-            const hasExternalUrlFunction = value.includes('url(') && !value.includes('url(#');
+            const hasUnsafeUrlFunction = value.includes('url(') && !localUrlPattern.test(value);
+            const hasUnsafeUrlAttr = urlAttrs.has(name) && value.includes('url(') && !localUrlPattern.test(value);
 
             if (
               name.startsWith('on') ||
               (isExternalRefAttr && (isExternalProtocol || !value.startsWith('#'))) ||
-              hasExternalUrlFunction
+              hasUnsafeUrlFunction ||
+              hasUnsafeUrlAttr
             ) {
               node.removeAttribute(attr.name);
             }
