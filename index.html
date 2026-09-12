@@ -165,6 +165,7 @@
           'animatecolor',
           'animatetransform',
           'set',
+          'style',
         ]);
         const refAttrs = new Set(['href', 'xlink:href', 'src']);
         const urlMatchesAreSafe = (input) => {
@@ -227,20 +228,6 @@
         });
 
         svgRoot.querySelectorAll('*').forEach((node) => {
-          const tag = (node.localName || '').toLowerCase();
-          if (tag === 'style') {
-            const css = (node.textContent || '').toLowerCase();
-            const hasUnsafeCss =
-              css.includes('@import') ||
-              css.includes('javascript:') ||
-              css.includes('expression(') ||
-              (css.includes('url(') && !urlMatchesAreSafe(css));
-            if (hasUnsafeCss) {
-              node.remove();
-            }
-            return;
-          }
-
           [...node.attributes].forEach((attr) => {
             const name = attr.name.toLowerCase();
             const value = attr.value.trim();
@@ -361,10 +348,13 @@
                 ? crypto.randomUUID()
                 : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
             const id = `diagram-${uniqueId}`;
-            const { svg } = await mermaid.render(id, code);
+            const { svg, bindFunctions } = await mermaid.render(id, code);
             if (requestId !== latestRenderRequest) return;
             const sanitizedSvg = sanitizeSvg(svg);
             output.replaceChildren(sanitizedSvg);
+            if (typeof bindFunctions === 'function') {
+              bindFunctions(output);
+            }
             output.setAttribute('aria-label', buildDiagramDescription(code));
             output.setAttribute('aria-invalid', 'false');
             output.removeAttribute('role');
