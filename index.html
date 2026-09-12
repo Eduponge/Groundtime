@@ -92,7 +92,7 @@
     <div class="container">
       <h1>Criador de Fluxo Visual (Mermaid)</h1>
       <p>
-        O conteúdo de <code>code-1789249679287.txt</code> é carregado automaticamente.
+        O conteúdo de <code id="source-file-label"></code> é carregado automaticamente.
         Você pode editar e renderizar novamente.
       </p>
 
@@ -127,8 +127,11 @@
       const output = document.getElementById('output');
       const statusEl = document.getElementById('status');
       const sourceFile = 'code-1789249679287.txt';
+      const sourceFileLabel = document.getElementById('source-file-label');
       let latestRenderRequest = 0;
       let renderQueue = Promise.resolve();
+
+      sourceFileLabel.textContent = sourceFile;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
