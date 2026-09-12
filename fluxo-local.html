@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fluxo Visual Groundtime (Local)</title>
+    <style>
+      body {
+        margin: 0;
+        background: #f8fafc;
+        color: #0f172a;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 420px) 1fr;
+        gap: 16px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 520px;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      button {
+        margin-top: 10px;
+        border: 0;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+      #status { margin-top: 10px; }
+      .error { color: #b91c1c; }
+      #output { overflow: auto; }
+      @media (max-width: 980px) {
+        .layout { grid-template-columns: 1fr; }
+        textarea { min-height: 260px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Fluxo Visual Groundtime</h1>
+      <p>Arquivo standalone: salve este HTML e abra localmente no navegador.</p>
+
+      <div class="layout">
+        <section class="panel">
+          <label for="code"><strong>Código Mermaid</strong></label>
+          <textarea id="code" spellcheck="false"></textarea>
+          <button id="renderBtn" type="button">Renderizar fluxo</button>
+          <div id="status" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="panel">
+          <h2 style="margin-top: 0">Resultado</h2>
+          <div id="output" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.esm.min.mjs';
+
+      const DEFAULT_CODE = `flowchart TD
+    %% ESTILOS VISUAIS
+    classDef startFill fill:#0F172A,stroke:#0F172A,stroke-width:2px,color:#FFFFFF
+    classDef processFill fill:#F8FAFC,stroke:#64748B,stroke-width:2px,color:#0F172A
+    classDef actionFill fill:#EFF6FF,stroke:#3B82F6,stroke-width:2px,color:#1E3A8A
+    classDef decisionFill fill:#FEF3C7,stroke:#F59E0B,stroke-width:2px,color:#78350F
+    classDef formulaFill fill:#DCFCE7,stroke:#16A34A,stroke-width:2px,color:#14532D
+
+    Start([<b>PERGUNTA</b><br>Como o AIMS determina e calcula o Ground Time?]):::startFill --> Step1
+
+    Step1[<b>1. Consulta da Rota do Avião</b><br>O AIMS acessa o plano de rota cadastrado no sistema<br><i>Aircraft Route Screen - Option 1.1.1</i>]:::processFill --> Step2
+
+    Step2[<b>2. Leitura dos Horários Programados</b><br>Identifica na rota os valores de:<br>• <code>STA</code> da etapa de chegada<br>• <code>STD</code> da próxima etapa]:::actionFill --> CheckReschedule
+
+    CheckReschedule{<b>Houve FLIGHT RESCHEDULE?</b><br><i>Opção 'Re-schedule' aplicada no AIMS</i>}:::decisionFill
+
+    %% CAMINHO RESCHEDULE
+    CheckReschedule -- <b>SIM</b> --> PathReschedule[<b>Atualização de Linha de Base</b><br>A alteração manual grava novos horários de <code>STA</code> e/ou <code>STD</code> na rota]:::actionFill
+    PathReschedule --> CalcFormula
+
+    %% CAMINHO PADRÃO
+    CheckReschedule -- <b>NÃO</b> --> PathNormal[<b>Linha de Base Corrente</b><br>O sistema usa os horários de <code>STA</code> e <code>STD</code> já gravados no plano de rota]:::processFill
+    PathNormal --> CalcFormula
+
+    %% FÓRMULA CENTRAL
+    CalcFormula[<b>3. FÓRMULA DE CÁLCULO DO GROUND TIME NO AIMS</b><br><br><code>Ground Time = ProximoLeg.STD - AtualLeg.STA</code><br><br><i>O AIMS ignora o banco de dados padrão de aeroportos durante a propagação</i>]:::formulaFill --> Application
+
+    Application[<b>4. Aplicação Prática no Sistema</b><br>Quando o <code>ETA</code> atualiza ou entra mensagem de movimento:<br><code>Novo ETD = Novo ETA + Ground Time</code>]:::processFill --> EndProcess([<b>RESULTADO</b><br>Ground Time Definido e Propagado no AIMS]):::startFill`;
+
+      const input = document.getElementById('code');
+      const output = document.getElementById('output');
+      const statusEl = document.getElementById('status');
+
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', flowchart: { htmlLabels: false } });
+
+      async function renderDiagram() {
+        const code = input.value.trim();
+        if (!code) {
+          output.replaceChildren();
+          statusEl.textContent = 'Cole um código Mermaid para renderizar.';
+          statusEl.className = 'error';
+          return;
+        }
+
+        try {
+          const id = `diagram-${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`;
+          const { svg } = await mermaid.render(id, code);
+          output.innerHTML = svg;
+          statusEl.textContent = 'Fluxo renderizado com sucesso.';
+          statusEl.className = '';
+        } catch (error) {
+          output.replaceChildren();
+          statusEl.textContent = `Erro ao renderizar: ${error?.message || String(error)}`;
+          statusEl.className = 'error';
+        }
+      }
+
+      input.value = DEFAULT_CODE;
+      document.getElementById('renderBtn').addEventListener('click', renderDiagram);
+      renderDiagram();
+    </script>
+  </body>
+</html>
