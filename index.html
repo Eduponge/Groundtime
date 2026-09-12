@@ -165,12 +165,16 @@
         const refAttrs = new Set(['href', 'xlink:href', 'src']);
         const urlMatchesAreSafe = (input) => {
           const urlRegex = /url\(\s*(['"]?)(.*?)\1\s*\)/gi;
+          const hasUrlFunction = /url\(/i.test(input);
+          let matchCount = 0;
           let match;
           while ((match = urlRegex.exec(input)) !== null) {
+            matchCount += 1;
             const target = (match[2] || '').trim();
             const normalizedTarget = target.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
             if (!/^#[a-z_][\w:.-]*$/i.test(normalizedTarget)) return false;
           }
+          if (hasUrlFunction && matchCount === 0) return false;
           return true;
         };
         const sanitizeStyleValue = (styleValue) => {
@@ -251,7 +255,9 @@
           await renderDiagram();
         } catch (error) {
           output.replaceChildren();
+          output.textContent = 'Falha ao carregar o diagrama.';
           output.setAttribute('aria-label', 'Falha ao carregar arquivo de diagrama');
+          output.setAttribute('aria-invalid', 'true');
           setStatus(getErrorMessage(error), true);
         }
       }
@@ -262,6 +268,7 @@
           const code = input.value.trim();
           if (!code) {
             output.replaceChildren();
+            output.setAttribute('aria-invalid', 'true');
             setStatus('Cole um código Mermaid para renderizar.', true);
             return;
           }
@@ -273,15 +280,18 @@
                 : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
             const id = `diagram-${uniqueId}`;
             const { svg } = await mermaid.render(id, code);
+            const sanitizedSvg = sanitizeSvg(svg);
             if (requestId !== latestRenderRequest) return;
-            output.replaceChildren(sanitizeSvg(svg));
+            output.replaceChildren(sanitizedSvg);
             output.setAttribute('aria-label', buildDiagramDescription(code));
+            output.setAttribute('aria-invalid', 'false');
             output.focus();
             setStatus('Fluxo renderizado com sucesso.');
           } catch (error) {
             if (requestId !== latestRenderRequest) return;
             output.replaceChildren();
             output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
+            output.setAttribute('aria-invalid', 'true');
             setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
           }
         };
