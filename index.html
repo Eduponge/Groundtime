@@ -279,6 +279,7 @@
       }
 
       async function loadFile() {
+        let shouldRender = false;
         try {
           const response = await fetch(sourceFile, {
             credentials: 'same-origin',
@@ -289,7 +290,7 @@
           }
           input.value = await response.text();
           setStatus('Arquivo carregado com sucesso.');
-          await renderDiagram();
+          shouldRender = true;
         } catch (error) {
           input.value = defaultDiagramCode;
           output.replaceChildren();
@@ -298,6 +299,10 @@
           output.setAttribute('aria-invalid', 'false');
           output.removeAttribute('role');
           setStatus(`Não foi possível ler ${sourceFile}. Usando conteúdo embutido localmente.`);
+          shouldRender = true;
+        }
+
+        if (shouldRender) {
           await renderDiagram();
         }
       }
