@@ -281,13 +281,22 @@
       async function loadFile() {
         let shouldRender = false;
         if (location.protocol === 'file:') {
-          input.value = defaultDiagramCode;
+          const hasExistingContent = input.value.trim().length > 0;
+          if (!hasExistingContent) {
+            input.value = defaultDiagramCode;
+          }
           output.replaceChildren();
-          output.textContent = 'Modo local detectado. Conteúdo embutido carregado.';
+          output.textContent = hasExistingContent
+            ? 'Modo local detectado. Mantendo conteúdo atual do editor.'
+            : 'Modo local detectado. Conteúdo embutido carregado.';
           output.setAttribute('aria-label', 'Diagrama carregado em modo local');
           output.setAttribute('aria-invalid', 'false');
           output.removeAttribute('role');
-          setStatus('Modo local detectado. Usando conteúdo embutido.');
+          setStatus(
+            hasExistingContent
+              ? 'Modo local detectado. Mantendo seu conteúdo atual no editor.'
+              : 'Modo local detectado. Usando conteúdo embutido.'
+          );
           shouldRender = true;
         }
 
@@ -353,8 +362,8 @@
                 : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
             const id = `diagram-${uniqueId}`;
             const { svg } = await mermaid.render(id, code);
-            const sanitizedSvg = sanitizeSvg(svg);
             if (requestId !== latestRenderRequest) return;
+            const sanitizedSvg = sanitizeSvg(svg);
             output.replaceChildren(sanitizedSvg);
             output.setAttribute('aria-label', buildDiagramDescription(code));
             output.setAttribute('aria-invalid', 'false');
