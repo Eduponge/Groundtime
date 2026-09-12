@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Groundtime - Fluxo Visual</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      h1 {
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 16px;
+        color: #334155;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(280px, 420px) 1fr;
+        gap: 16px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      }
+      textarea {
+        width: 100%;
+        min-height: 560px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        resize: vertical;
+        box-sizing: border-box;
+      }
+      .actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+      }
+      button {
+        border: 0;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #334155;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      .status.error {
+        color: #b91c1c;
+      }
+      .diagram {
+        overflow: auto;
+      }
+      @media (max-width: 980px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        textarea {
+          min-height: 260px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Criador de Fluxo Visual (Mermaid)</h1>
+      <p>
+        O conteúdo de <code>code-1789249679287.txt</code> é carregado automaticamente.
+        Você pode editar e renderizar novamente.
+      </p>
+
+      <div class="layout">
+        <section class="panel">
+          <label for="code"><strong>Código Mermaid</strong></label>
+          <textarea id="code" spellcheck="false"></textarea>
+          <div class="actions">
+            <button id="renderBtn" type="button">Renderizar fluxo</button>
+            <button id="reloadBtn" type="button" class="secondary">Recarregar arquivo</button>
+          </div>
+          <div id="status" class="status"></div>
+        </section>
+
+        <section class="panel diagram">
+          <div id="output"></div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+
+      const input = document.getElementById('code');
+      const output = document.getElementById('output');
+      const statusEl = document.getElementById('status');
+      const sourceFile = 'code-1789249679287.txt';
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.className = `status${isError ? ' error' : ''}`;
+      }
+
+      async function loadFile() {
+        try {
+          const response = await fetch(sourceFile);
+          if (!response.ok) {
+            throw new Error(`Falha ao carregar ${sourceFile} (${response.status})`);
+          }
+          input.value = await response.text();
+          setStatus('Arquivo carregado com sucesso.');
+          await renderDiagram();
+        } catch (error) {
+          setStatus(error.message, true);
+        }
+      }
+
+      async function renderDiagram() {
+        const code = input.value.trim();
+        if (!code) {
+          output.innerHTML = '';
+          setStatus('Cole um código Mermaid para renderizar.', true);
+          return;
+        }
+
+        try {
+          const id = `diagram-${Date.now()}`;
+          const { svg } = await mermaid.render(id, code);
+          output.innerHTML = svg;
+          setStatus('Fluxo renderizado com sucesso.');
+        } catch (error) {
+          output.innerHTML = '';
+          setStatus(`Erro ao renderizar: ${error.message}`, true);
+        }
+      }
+
+      document.getElementById('renderBtn').addEventListener('click', renderDiagram);
+      document.getElementById('reloadBtn').addEventListener('click', loadFile);
+
+      loadFile();
+    </script>
+  </body>
+</html>
