@@ -271,31 +271,31 @@
       async function renderDiagram() {
         const requestId = ++latestRenderRequest;
         const currentRender = async () => {
-        const code = input.value.trim();
-        if (!code) {
-          output.innerHTML = '';
-          setStatus('Cole um código Mermaid para renderizar.', true);
-          return;
-        }
+          const code = input.value.trim();
+          if (!code) {
+            output.replaceChildren();
+            setStatus('Cole um código Mermaid para renderizar.', true);
+            return;
+          }
 
-        try {
-          const uniqueId =
-            typeof crypto !== 'undefined' && crypto.randomUUID
-              ? crypto.randomUUID()
-              : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-          const id = `diagram-${uniqueId}`;
-          const { svg } = await mermaid.render(id, code);
-          if (requestId !== latestRenderRequest) return;
-          output.replaceChildren(sanitizeSvg(svg, id));
-          output.setAttribute('aria-label', buildDiagramDescription(code));
-          output.focus();
-          setStatus('Fluxo renderizado com sucesso.');
-        } catch (error) {
-          if (requestId !== latestRenderRequest) return;
-          output.replaceChildren();
-          output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
-          setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
-        }
+          try {
+            const uniqueId =
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            const id = `diagram-${uniqueId}`;
+            const { svg } = await mermaid.render(id, code);
+            if (requestId !== latestRenderRequest) return;
+            output.replaceChildren(sanitizeSvg(svg, id));
+            output.setAttribute('aria-label', buildDiagramDescription(code));
+            output.focus();
+            setStatus('Fluxo renderizado com sucesso.');
+          } catch (error) {
+            if (requestId !== latestRenderRequest) return;
+            output.replaceChildren();
+            output.setAttribute('aria-label', 'Falha ao renderizar diagrama Mermaid');
+            setStatus(`Erro ao renderizar: ${getErrorMessage(error)}`, true);
+          }
         };
         renderQueue = renderQueue.then(currentRender, currentRender);
         await renderQueue;
