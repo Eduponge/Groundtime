@@ -10,11 +10,6 @@
         font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       }
 
-      function getErrorMessage(error) {
-        if (error instanceof Error && error.message) return error.message;
-        if (typeof error === 'string' && error.trim()) return error;
-        return 'Falha inesperada.';
-      }
       body {
         margin: 0;
         background: #f8fafc;
@@ -144,6 +139,12 @@
           .map((line) => line.trim())
           .find((line) => line.length > 0);
         return firstLine ? `Diagrama Mermaid: ${firstLine}` : 'Diagrama Mermaid renderizado';
+      }
+
+      function getErrorMessage(error) {
+        if (error instanceof Error && error.message) return error.message;
+        if (typeof error === 'string' && error.trim()) return error;
+        return 'Falha inesperada.';
       }
 
       function sanitizeSvg(svg) {
